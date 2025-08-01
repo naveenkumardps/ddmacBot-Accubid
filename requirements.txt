@@ -1,0 +1,10 @@
+streamlit
+pandas
+numpy
+matplotlib
+python-dotenv
+sqlalchemy
+alembic
+psycopg2-binary
+pymysql
+cryptography
