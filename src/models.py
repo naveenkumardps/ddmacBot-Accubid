@@ -101,4 +101,33 @@ class ProjectItem(Base):
     
     # Relationships
     project = relationship("Project", back_populates="project_items")
-    user = relationship("User", back_populates="project_items") 
+    user = relationship("User", back_populates="project_items")
+
+class ProjectLbfac(Base):
+    __tablename__ = "project_lbfac"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Foreign keys
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    # Labor Factoring fields
+    labor_factoring = Column(Text)
+    factor = Column(Text)
+    percent_of_direct_hrs = Column(Text)
+    hours = Column(Text)
+    rate = Column(Text)
+    sub_total = Column(Text)
+    brdn_percent = Column(Text)
+    frng = Column(Text)
+    brdn_total = Column(Text)
+    frng_total = Column(Text)
+    total = Column(Text)
+    full_rate = Column(Text)
+    code = Column(Text)
+    type = Column(Text)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now()) 
