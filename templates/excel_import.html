@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Import System - Schlegel Accubid</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sheet-card {
+            transition: all 0.3s ease;
+        }
+        .sheet-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .sheet-card.selected {
+            border-color: #007bff;
+            background-color: #f8f9fa;
+        }
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+        .table-responsive {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .loading {
+            display: none;
+        }
+        .loading.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="mb-0">
+                            <i class="fas fa-file-excel me-2"></i>
+                            Excel Import System - Schlegel Accubid
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <!-- File Information -->
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Excel File:</strong> C:\Users\navee\Downloads\Schlegel Accubid in Excel (1).xlsx
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <button id="examineBtn" class="btn btn-outline-primary btn-lg">
+                                    <i class="fas fa-search me-2"></i>
+                                    Examine Excel File
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <button id="importBtn" class="btn btn-success btn-lg" disabled>
+                                    <i class="fas fa-upload me-2"></i>
+                                    Import Selected Sheets
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Loading Indicator -->
+                        <div id="loading" class="loading text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2" id="loadingText">Processing...</p>
+                        </div>
+
+                        <!-- Sheets Information -->
+                        <div id="sheetsInfo" style="display: none;">
+                            <h4 class="mb-3">
+                                <i class="fas fa-table me-2"></i>
+                                Available Sheets
+                            </h4>
+                            <div class="row" id="sheetsContainer">
+                                <!-- Sheets will be populated here -->
+                            </div>
+                        </div>
+
+                        <!-- Import Results -->
+                        <div id="importResults" style="display: none;">
+                            <h4 class="mb-3">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Import Results
+                            </h4>
+                            <div id="resultsContainer">
+                                <!-- Results will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sheet Details Modal -->
+    <div class="modal fade" id="sheetModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sheetModalTitle">Sheet Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="sheetModalContent">
+                        <!-- Sheet details will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let sheetsData = {};
+        let selectedSheets = new Set();
+
+        // Examine Excel File
+        document.getElementById('examineBtn').addEventListener('click', async function() {
+            showLoading('Examining Excel file...');
+            
+            try {
+                const response = await fetch('/examine_excel', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    sheetsData = data.sheets;
+                    displaySheets(data.sheets);
+                    hideLoading();
+                    document.getElementById('importBtn').disabled = false;
+                } else {
+                    hideLoading();
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                hideLoading();
+                alert('Error: ' + error.message);
+            }
+        });
+
+        // Import Excel Data
+        document.getElementById('importBtn').addEventListener('click', async function() {
+            if (selectedSheets.size === 0) {
+                alert('Please select at least one sheet to import.');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to import ${selectedSheets.size} selected sheets?`)) {
+                return;
+            }
+
+            showLoading('Importing data...');
+            
+            try {
+                const response = await fetch('/import_excel', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        sheets: Array.from(selectedSheets)
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayResults(data);
+                    hideLoading();
+                } else {
+                    hideLoading();
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                hideLoading();
+                alert('Error: ' + error.message);
+            }
+        });
+
+        function displaySheets(sheets) {
+            const container = document.getElementById('sheetsContainer');
+            container.innerHTML = '';
+
+            Object.entries(sheets).forEach(([sheetName, sheetInfo]) => {
+                const card = document.createElement('div');
+                card.className = 'col-md-6 col-lg-4 mb-3';
+                card.innerHTML = `
+                    <div class="card sheet-card h-100" data-sheet="${sheetName}">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">${sheetName}</h6>
+                            <div class="form-check">
+                                <input class="form-check-input sheet-checkbox" type="checkbox" 
+                                       id="check_${sheetName}" data-sheet="${sheetName}">
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">
+                                <strong>Rows:</strong> ${sheetInfo.shape[0]}<br>
+                                <strong>Columns:</strong> ${sheetInfo.shape[1]}
+                            </p>
+                            <button class="btn btn-sm btn-outline-info view-details" 
+                                    data-sheet="${sheetName}">
+                                <i class="fas fa-eye me-1"></i>View Details
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            // Add event listeners
+            document.querySelectorAll('.sheet-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const sheetName = this.dataset.sheet;
+                    const card = this.closest('.sheet-card');
+                    
+                    if (this.checked) {
+                        selectedSheets.add(sheetName);
+                        card.classList.add('selected');
+                    } else {
+                        selectedSheets.delete(sheetName);
+                        card.classList.remove('selected');
+                    }
+                });
+            });
+
+            document.querySelectorAll('.view-details').forEach(button => {
+                button.addEventListener('click', function() {
+                    const sheetName = this.dataset.sheet;
+                    showSheetDetails(sheetName);
+                });
+            });
+
+            document.getElementById('sheetsInfo').style.display = 'block';
+        }
+
+        function showSheetDetails(sheetName) {
+            const sheetInfo = sheetsData[sheetName];
+            const modal = new bootstrap.Modal(document.getElementById('sheetModal'));
+            
+            document.getElementById('sheetModalTitle').textContent = `Sheet: ${sheetName}`;
+            
+            const content = document.getElementById('sheetModalContent');
+            content.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Columns:</h6>
+                        <ul class="list-group mb-3">
+                            ${sheetInfo.columns.map(col => `<li class="list-group-item">${col}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Sample Data:</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        ${sheetInfo.columns.map(col => `<th>${col}</th>`).join('')}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${sheetInfo.sample_data.map(row => `
+                                        <tr>
+                                            ${sheetInfo.columns.map(col => `<td>${row[col] || ''}</td>`).join('')}
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            modal.show();
+        }
+
+        function displayResults(data) {
+            const container = document.getElementById('resultsContainer');
+            
+            let html = `
+                <div class="alert alert-success">
+                    <h5><i class="fas fa-check-circle me-2"></i>Import Completed Successfully!</h5>
+                    <p><strong>Project ID:</strong> ${data.project_id}</p>
+                    <p><strong>Total Imported:</strong> ${data.total_imported} records</p>
+                    <p><strong>Total Errors:</strong> ${data.total_errors} records</p>
+                </div>
+                
+                <h6>Detailed Results:</h6>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Sheet</th>
+                                <th>Total Rows</th>
+                                <th>Imported</th>
+                                <th>Errors</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            Object.entries(data.results).forEach(([sheetName, result]) => {
+                const status = result.error ? 
+                    '<span class="badge bg-danger">Error</span>' : 
+                    '<span class="badge bg-success">Success</span>';
+                
+                html += `
+                    <tr>
+                        <td><strong>${sheetName}</strong></td>
+                        <td>${result.total_rows}</td>
+                        <td>${result.imported}</td>
+                        <td>${result.errors}</td>
+                        <td>${status}</td>
+                    </tr>
+                `;
+                
+                if (result.error) {
+                    html += `
+                        <tr>
+                            <td colspan="5" class="text-danger">
+                                <small>Error: ${result.error}</small>
+                            </td>
+                        </tr>
+                    `;
+                }
+            });
+            
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+            document.getElementById('importResults').style.display = 'block';
+        }
+
+        function showLoading(text) {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loading').classList.add('show');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('show');
+        }
+    </script>
+</body>
+</html> 

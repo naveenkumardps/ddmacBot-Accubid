@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, Float, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-from database import Base
+from src.database import Base
 
 class User(Base):
     __tablename__ = "users"
@@ -10,7 +10,6 @@ class User(Base):
     username = Column(String(50), unique=True, index=True, nullable=False)
     email = Column(String(100), unique=True, index=True, nullable=False)
     full_name = Column(String(100))
-    role = Column(String(50), default="user")
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -41,7 +40,7 @@ class ProjectItem(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     # Basic item information
-    description = Column(Text, nullable=False)
+    description = Column(Text, nullable=True)
     quantity = Column(Float, default=1.0)
     date = Column(DateTime(timezone=True), server_default=func.now())
     
@@ -104,7 +103,7 @@ class ProjectItem(Base):
     user = relationship("User", back_populates="project_items")
 
 class ProjectLbfac(Base):
-    __tablename__ = "project_lbfac"
+    __tablename__ = "project_lbesc"
     
     id = Column(Integer, primary_key=True, index=True)
     
@@ -112,14 +111,93 @@ class ProjectLbfac(Base):
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
-    # Labor Factoring fields
-    labor_factoring = Column(Text)
-    factor = Column(Text)
-    percent_of_direct_hrs = Column(Text)
+    # Labor Escalation fields
+    escalation_period = Column(Text)
+    description = Column(Text)
+    percent_of_contract = Column(Text)
+    labor_hours = Column(Text)
+    escalation_percent = Column(Text)
+    escalation_amount = Column(Text)
+    financing_percent = Column(Text)
+    total = Column(Text)
+    code = Column(Text)
+    type = Column(Text)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class ProjectDirlib(Base):
+    __tablename__ = "project_dirlb"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Foreign keys
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    # Direct Labor fields
+    labor_type = Column(Text)
+    crew = Column(Text)
     hours = Column(Text)
     rate = Column(Text)
     sub_total = Column(Text)
-    brdn_percent = Column(Text)
+    brdn = Column(Text)
+    frng = Column(Text)
+    brdn_total = Column(Text)
+    frng_total = Column(Text)
+    total = Column(Text)
+    full_rate = Column(Text)
+    code = Column(Text)
+    type = Column(Text)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class ProjectInclb(Base):
+    __tablename__ = "project_inclb"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Foreign keys
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    # Incidental Labor fields
+    incidental_labor = Column(Text)
+    hours = Column(Text)
+    rate = Column(Text)
+    sub_total = Column(Text)
+    brdn = Column(Text)
+    frng = Column(Text)
+    brdn_total = Column(Text)
+    frng_total = Column(Text)
+    total = Column(Text)
+    full_rate = Column(Text)
+    code = Column(Text)
+    type = Column(Text)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class ProjectIndlb(Base):
+    __tablename__ = "project_indlb"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Foreign keys
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    # Indirect Labor fields
+    indirect_labor = Column(Text)
+    labor_percent = Column(Text)
+    hours = Column(Text)
+    rate = Column(Text)
+    sub_total = Column(Text)
+    brdn = Column(Text)
     frng = Column(Text)
     brdn_total = Column(Text)
     frng_total = Column(Text)

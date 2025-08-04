@@ -33,8 +33,6 @@ def upgrade() -> None:
     sa.Column('total', mysql.TEXT(), nullable=True),
     sa.Column('code', mysql.TEXT(), nullable=True),
     sa.Column('type', mysql.TEXT(), nullable=True),
-   
-   
     sa.Column('created_at', mysql.DATETIME(), server_default=sa.text('current_timestamp()'), nullable=True),
     sa.Column('updated_at', mysql.DATETIME(), nullable=True),
     sa.ForeignKeyConstraint(['project_id'], ['projects.id'], name=op.f('project_lbesc_ibfk_1')),

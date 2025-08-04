@@ -48,7 +48,7 @@ def main():
         print("  test              - Test database connection")
         print("  create <message>  - Create a new migration")
         print("  upgrade           - Apply all pending migrations")
-        print("  downgrade         - Revert the last migration")
+        print("  downgrade         - Drop ALL tables from database")
         print("  current           - Show current migration version")
         print("  history           - Show migration history")
         print("  status            - Show migration status")
@@ -90,18 +90,33 @@ def main():
             print("No pending migrations to apply or migration failed.")
     
     elif command == "downgrade":
-        print("Reverting last migration...")
-        
-        # Test connection first
-        if not test_db_connection():
-            print("Cannot revert migration - database connection failed!")
+        print("⚠️  WARNING: This will drop ALL tables from the database!")
+        confirm = input("Are you sure you want to drop all tables? (yes/no): ")
+        if confirm.lower() != "yes":
+            print("Downgrade cancelled.")
             return
             
-        result = run_command("alembic downgrade -1")
-        if result is not None:
-            print("Migration reverted successfully!")
-        else:
-            print("Failed to revert migration.")
+        # Test connection first
+        if not test_db_connection():
+            print("Cannot drop tables - database connection failed!")
+            return
+            
+        print("Dropping all tables...")
+        try:
+            from src.database import engine
+            from src.models import Base
+            Base.metadata.drop_all(bind=engine)
+            print("✅ All tables dropped successfully!")
+            
+            print("Resetting migration version...")
+            run_command("alembic stamp base")
+            print("✅ Migration version reset to base!")
+            print("✅ Database downgrade completed - all tables removed!")
+            
+        except Exception as e:
+            print(f"❌ Error dropping tables: {e}")
+            import traceback
+            traceback.print_exc()
     
     elif command == "current":
         print("Current migration version:")
